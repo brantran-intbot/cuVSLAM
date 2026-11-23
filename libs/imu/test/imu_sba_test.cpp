@@ -24,6 +24,7 @@
 #include "imu/imu_preintegration.h"
 #include "imu/imu_sba.h"
 #include "imu/imu_sba_problem.h"
+#include "imu/soft_inertial_pnp.h"
 #ifdef USE_CUDA
 #include "imu/imu_sba_gpu.h"
 #endif
@@ -78,6 +79,32 @@ ImuBAProblem MakeProblem(const imu::ImuCalibration& calib, float depth) {
 constexpr float kNearFieldDepth = 0.05f;
 
 }  // namespace
+
+TEST(ImuPnP, FrozenBiasDoesNotInflateNextFramePrior) {
+  const imu::ImuCalibration calib;
+  const auto scene = MakeProblem(calib, 2.f);
+  StereoPnPInput input;
+  input.freeze_bias = true;
+  input.rig = scene.rig;
+  input.points = scene.points;
+  input.gravity.setZero();
+  for (size_t i = 0; i < scene.pose_ids.size(); ++i) {
+    if (scene.pose_ids[i] == 1) {
+      input.point_ids.push_back(scene.point_ids[i]);
+      input.camera_ids.push_back(0);
+      input.observation_xys.push_back(scene.observation_xys[i]);
+      input.observation_infos.push_back(1e5f * Matrix2T::Identity());
+    }
+  }
+  Pose prev = scene.rig_poses.front();
+  prev.info.setIdentity();
+  Pose curr = scene.rig_poses.back();
+  curr.w_from_imu.translation().x() += 0.1f;
+  ASSERT_TRUE(SoftInertialPnP(calib, input, prev, curr));
+  EXPECT_TRUE(curr.gyro_bias.isZero());
+  EXPECT_TRUE(curr.acc_bias.isZero());
+  EXPECT_TRUE(curr.info.bottomRightCorner(6, 6).isIdentity());
+}
 
 // The IMU bundlers skip only observations behind the camera. A skipped observation costs nothing, so a
 // 0.1 m near plane let an LM step hide points it had pushed close to the camera, and the step got

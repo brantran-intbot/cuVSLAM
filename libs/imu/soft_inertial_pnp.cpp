@@ -704,14 +704,14 @@ bool solve_inertial_pnp(const imu::ImuCalibration& imu_calibration, const Stereo
   build_hessian(imu_calibration, problem, is_obs_outlier, original_prev_pose, prev_pose, pose, imu_info_penalty,
                 hessian, negative_gradient);
 
-  // Freeze bias DOFs: zero off-diagonal coupling and set large diagonal to lock them
+  // Freeze bias DOFs: the zero RHS and uncoupled unit rows keep the update zero without distorting marginalization
   if (problem.freeze_bias) {
     // Bias indices: left gyro[9-11], left acc[12-14], right gyro[24-26], right acc[27-29]
     const int bias_indices[] = {9, 10, 11, 12, 13, 14, 24, 25, 26, 27, 28, 29};
     for (int idx : bias_indices) {
       hessian.row(idx).setZero();
       hessian.col(idx).setZero();
-      hessian(idx, idx) = 1e10f;
+      hessian(idx, idx) = 1.f;
       negative_gradient(idx) = 0.f;
     }
   }
@@ -793,7 +793,7 @@ bool solve_inertial_pnp(const imu::ImuCalibration& imu_calibration, const Stereo
         for (int idx : bias_indices) {
           hessian.row(idx).setZero();
           hessian.col(idx).setZero();
-          hessian(idx, idx) = 1e10f;
+          hessian(idx, idx) = 1.f;
           negative_gradient(idx) = 0.f;
         }
       }
