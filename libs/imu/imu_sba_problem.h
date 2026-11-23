@@ -38,6 +38,10 @@ struct Pose {
 
   Matrix15T info = Matrix15T::Zero();
 
+  void estimate_velocity_from(const Pose& previous, float dt_s) {
+    velocity = (w_from_imu.translation() - previous.w_from_imu.translation()) / dt_s;
+  }
+
   bool predict_pose(const Vector3T& gravity, const IMUPreintegration& preint, Pose& pose) const;
   bool predict_pose(const Vector3T& gravity, Pose& pose) const;
 };

@@ -603,8 +603,7 @@ bool SolverSfMInertial::solveNextFrame(int64_t time_ns, const sof::FrameState& f
         curr_pose.acc_bias = prev_pose.acc_bias;
         if (!is_first_run) {
           float dt = static_cast<float>((time_ns - prev_pose_ts_ns) * 1e-9);
-          Vector3T dp = (prev_pose.w_from_imu * curr_pose.w_from_imu.inverse()).translation();
-          curr_pose.velocity = dp / dt;
+          curr_pose.estimate_velocity_from(prev_pose, dt);
         } else {
           curr_pose.velocity.setZero();
         }

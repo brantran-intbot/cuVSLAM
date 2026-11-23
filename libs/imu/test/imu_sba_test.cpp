@@ -80,6 +80,19 @@ constexpr float kNearFieldDepth = 0.05f;
 
 }  // namespace
 
+TEST(ImuPose, VisualVelocityUsesWorldPositionDifference) {
+  Pose prev;
+  prev.w_from_imu.translation() = Vector3T(20.f, -3.f, 7.f);
+  Pose curr = prev;
+  curr.w_from_imu.linear() = Eigen::AngleAxisf(1.f, Vector3T::UnitY()).toRotationMatrix();
+  curr.estimate_velocity_from(prev, 0.25f);
+  EXPECT_TRUE(curr.velocity.isZero());
+
+  curr.w_from_imu.translation().x() += 0.5f;
+  curr.estimate_velocity_from(prev, 0.25f);
+  EXPECT_TRUE(curr.velocity.isApprox(Vector3T(2.f, 0.f, 0.f)));
+}
+
 TEST(ImuPnP, FrozenBiasDoesNotInflateNextFramePrior) {
   const imu::ImuCalibration calib;
   const auto scene = MakeProblem(calib, 2.f);
