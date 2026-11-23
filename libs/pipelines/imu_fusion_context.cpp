@@ -200,7 +200,7 @@ bool ImuFusionContext::solve_inertial(const std::unordered_map<TrackId, Vector3T
   if (!is_first_run_ && prev_pose_ts_ns_ > 0) {
     float dt = static_cast<float>((time_ns - prev_pose_ts_ns_) * 1e-9);
     if (dt > 1e-6f) {
-      curr_pose_.velocity = (curr_pose_.w_from_imu.translation() - prev_pose_.w_from_imu.translation()) / dt;
+      curr_pose_.estimate_velocity_from(prev_pose_, dt);
     }
   } else {
     curr_pose_.velocity.setZero();
@@ -231,8 +231,7 @@ bool ImuFusionContext::solve_visual(const std::unordered_map<TrackId, Vector3T>&
   if (!is_first_run_ && prev_pose_ts_ns_ > 0) {
     float dt = static_cast<float>((time_ns - prev_pose_ts_ns_) * 1e-9);
     if (dt > 1e-6f) {
-      Vector3T dp = (prev_pose_.w_from_imu * curr_pose_.w_from_imu.inverse()).translation();
-      curr_pose_.velocity = dp / dt;
+      curr_pose_.estimate_velocity_from(prev_pose_, dt);
     }
   } else {
     curr_pose_.velocity.setZero();
